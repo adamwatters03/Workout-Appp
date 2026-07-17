@@ -5,6 +5,7 @@ import React from "react";
 import { APP_DATA as PR } from "../data.js";
 import { Icon, Eyebrow, Ring, Bar, Chip } from "../components.jsx";
 import { useStore } from "../store.jsx";
+import { WeightCard, CalorieCounter, SupplementsSection } from "./body.jsx";
 
 export function ProgressScreen() {
   const store = useStore();
@@ -84,6 +85,20 @@ export function ProgressScreen() {
         ))}
       </div>
 
+      {/* body weight */}
+      <div className="mb-2.5 mt-6 flex items-center gap-2">
+        <Icon name="Scale" size={15} className="text-neutral-400" />
+        <h2 className="text-[13px] font-semibold tracking-tight text-neutral-700">Body Weight</h2>
+      </div>
+      <WeightCard />
+
+      {/* calorie counter */}
+      <div className="mb-2.5 mt-6 flex items-center gap-2">
+        <Icon name="Calculator" size={15} className="text-neutral-400" />
+        <h2 className="text-[13px] font-semibold tracking-tight text-neutral-700">Calorie Counter</h2>
+      </div>
+      <CalorieCounter />
+
       {/* badges */}
       <div className="mb-2.5 mt-6 flex items-center justify-between">
         <h2 className="text-[13px] font-semibold tracking-tight text-neutral-700">Achievements</h2>
@@ -126,8 +141,15 @@ export function ProgressScreen() {
         </div>
       </div>
 
+      {/* supplements & shakes */}
+      <div className="mb-2.5 mt-6 flex items-center gap-2">
+        <Icon name="Pill" size={15} className="text-neutral-400" />
+        <h2 className="text-[13px] font-semibold tracking-tight text-neutral-700">Supplements &amp; Shakes</h2>
+      </div>
+      <SupplementsSection />
+
       <button onClick={() => { if (confirm("Reset all progress, XP and logged days?")) store.resetProgress(); }}
-        className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border border-neutral-200 bg-white py-3 text-[13px] font-medium text-neutral-500 transition active:scale-[0.99]">
+        className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl border border-neutral-200 bg-white py-3 text-[13px] font-medium text-neutral-500 transition active:scale-[0.99]">
         <Icon name="RotateCcw" size={15} /> Reset progress
       </button>
     </div>

@@ -6,12 +6,33 @@
 // ---- Athlete profile -------------------------------------------------
 const profile = {
   height: "6ft (183 cm)",
-  weight: 94, // kg
+  weight: 91, // kg — target maintenance weight
+  goalWeight: 91, // kg — hold here while adding lean mass
   sex: "Male",
-  goal: "Body Recomposition",
-  goalNote: "Shedding body fat while preserving & building lean mass",
+  goal: "Maintain & Build Muscle",
+  goalNote: "Hold 91 kg while adding lean mass — recomposition at maintenance",
   proteinPerKg: 2.0,
+  // maintenance kcal ≈ bodyweight (kg) × this multiplier (active athlete).
+  // Weight-driven so the calorie target tracks the latest weigh-in.
+  maintenanceKcalPerKg: 30,
 };
+
+// estimated daily maintenance calories for a given bodyweight (kg)
+function maintenanceKcal(weightKg) {
+  return Math.round((weightKg * profile.maintenanceKcalPerKg) / 10) * 10;
+}
+
+// ---- Supplements & shakes --------------------------------------------
+const supplements = [
+  { name: "Omega 3",                         note: "Heart, joint & recovery support", timing: "Daily",   icon: "Fish" },
+  { name: "Turmeric, Curcumin & Ginger",     note: "Anti-inflammatory blend",         timing: "Daily",   icon: "Leaf" },
+  { name: "Ashwagandha",                     note: "Stress, sleep & recovery",        timing: "Daily",   icon: "Sprout" },
+  { name: "ABC-Z Multivitamins & Minerals",  note: "Full micronutrient cover",        timing: "Daily",   icon: "Pill" },
+];
+
+const shakes = [
+  { name: "Clear Whey Protein Powder", note: "Light, juice-style whey isolate", protein: 20, serving: "1 scoop", image: "supp-clear-whey" },
+];
 
 // ---- Nutrition target templates -------------------------------------
 // Protein held constant at ~2.0 g/kg (≈190 g) to protect lean mass.
@@ -202,5 +223,6 @@ const badges = [
 export const APP_DATA = {
   profile, targets, week, sessions, foods, foodMap, baseTemplateFor,
   mealPlans, planKeyFor, mealTotals, xpValues, badges,
+  supplements, shakes, maintenanceKcal,
   mesocycleWeeks: 4,
 };

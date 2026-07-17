@@ -3,19 +3,19 @@
    ========================================================================= */
 import React, { useState, useEffect, useRef, useReducer } from "react";
 import {
-  Apple, Check, ChevronLeft, ChevronRight, Circle, CircleCheck, Database,
-  Dumbbell, Flame, Goal, House, Image, Lock, Moon, Play, PoundSterling,
-  RotateCcw, Sparkles, Star, Swords, Target, TrendingUp, Trophy,
-  UtensilsCrossed, Zap,
+  Apple, Calculator, Check, ChevronLeft, ChevronRight, Circle, CircleCheck,
+  Database, Dumbbell, Fish, Flame, Goal, House, Image, Leaf, Lock, Minus, Moon,
+  Pill, Play, Plus, PoundSterling, RotateCcw, Scale, Sparkles, Sprout, Star, Sun,
+  Swords, Target, TrendingDown, TrendingUp, Trophy, UtensilsCrossed, X, Zap,
 } from "lucide-react";
 import { defaultPhoto } from "./photos.js";
 
 // only the icons the app actually uses, keyed by their design-file names
 const ICONS = {
-  Apple, Check, ChevronLeft, ChevronRight, Circle, CircleCheck, Database,
-  Dumbbell, Flame, Goal, House, Image, Lock, Moon, Play, PoundSterling,
-  RotateCcw, Sparkles, Star, Swords, Target, TrendingUp, Trophy,
-  UtensilsCrossed, Zap,
+  Apple, Calculator, Check, ChevronLeft, ChevronRight, Circle, CircleCheck,
+  Database, Dumbbell, Fish, Flame, Goal, House, Image, Leaf, Lock, Minus, Moon,
+  Pill, Play, Plus, PoundSterling, RotateCcw, Scale, Sparkles, Sprout, Star, Sun,
+  Swords, Target, TrendingDown, TrendingUp, Trophy, UtensilsCrossed, X, Zap,
 };
 
 /* ---- Lucide icon ---- */
@@ -165,7 +165,7 @@ async function fileToDataUrl(file, targetW) {
   }
 }
 
-function ImageSlot({ id, placeholder = "Add photo" }) {
+function ImageSlot({ id, placeholder = "Add photo", darken = true }) {
   const userUrl = useImage(id);        // user drag/drop override (localStorage)
   const fallback = defaultPhoto(id);   // image bundled with the app, if any
   const url = userUrl || fallback;
@@ -196,7 +196,10 @@ function ImageSlot({ id, placeholder = "Add photo" }) {
         onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) ingest(f); e.target.value = ""; }} />
       {url ? (
         <React.Fragment>
-          <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" draggable={false} />
+          <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover"
+            draggable={false} style={darken ? { filter: "saturate(0.9) brightness(0.94)" } : undefined} />
+          {/* tone overlay — darkens images to match the app's neutral palette */}
+          {darken && <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-neutral-950/45 via-neutral-950/15 to-neutral-950/25" />}
           <div className="absolute right-2 top-2 z-[1] flex gap-1 opacity-0 transition-opacity group-hover/slot:opacity-100">
             <span role="button" tabIndex={0} onClick={(e) => { e.stopPropagation(); inputRef.current.click(); }} title="Replace image"
               className="cursor-pointer rounded-md bg-black/65 px-2 py-1 text-[11px] text-white backdrop-blur-sm">Replace</span>
@@ -220,11 +223,11 @@ function ImageSlot({ id, placeholder = "Add photo" }) {
 }
 
 /* ---- user photo slot wrapper ---- */
-export function Photo({ id, ratio = "16 / 9", shape = "rounded", radius = 16, placeholder = "Add photo", className = "", overlay }) {
+export function Photo({ id, ratio = "16 / 9", shape = "rounded", radius = 16, placeholder = "Add photo", className = "", overlay, darken = true }) {
   return (
     <div className={"relative overflow-hidden bg-neutral-100 " + className}
       style={{ aspectRatio: ratio, borderRadius: shape === "circle" ? "9999px" : radius }}>
-      <ImageSlot id={id} placeholder={placeholder} />
+      <ImageSlot id={id} placeholder={placeholder} darken={darken} />
       {overlay}
     </div>
   );

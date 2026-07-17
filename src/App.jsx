@@ -10,6 +10,7 @@ import { TodayScreen } from "./screens/today.jsx";
 import { TrainScreen, SessionDetail, ExerciseDetail } from "./screens/train.jsx";
 import { FuelScreen, MealDetail, FoodDatabase, FoodDetail } from "./screens/fuel.jsx";
 import { ProgressScreen } from "./screens/progress.jsx";
+import { WeighInModal } from "./screens/body.jsx";
 
 const TABS = [
   { key: "today", label: "Today", icon: "House" },
@@ -76,6 +77,8 @@ function Shell() {
   const store = useStore();
   const prev = useRef(null);
   const [toast, setToast] = useState(null);
+  // weekly weigh-in nudge — shown once per ISO week until logged or dismissed
+  const [showWeighIn, setShowWeighIn] = useState(() => store.weighPromptDue());
 
   useEffect(() => {
     const cur = new Set(APP_DATA.week.filter((d) => store.dayTasks(d.key).complete).map((d) => d.key));
@@ -99,6 +102,8 @@ function Shell() {
       </div>
       <ScreenHost />
       <TabBar />
+
+      {showWeighIn && <WeighInModal onClose={() => setShowWeighIn(false)} />}
 
       {/* celebration toast */}
       {toast && (

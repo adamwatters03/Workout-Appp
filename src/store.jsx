@@ -13,12 +13,35 @@ export function todayKey() {
   return map[new Date().getDay()] || "tue";
 }
 
+// local calendar date → "YYYY-MM-DD"
+export function dateKey(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// ISO-8601 week key "YYYY-Www" — used to gate the weekly weigh-in prompt
+export function isoWeekKey(d = new Date()) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = (date.getUTCDay() + 6) % 7;      // Mon=0 … Sun=6
+  date.setUTCDate(date.getUTCDate() - dayNum + 3); // nearest Thursday
+  const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
+  const week = 1 + Math.round(
+    ((date - firstThursday) / 86400000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7
+  );
+  return `${date.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+}
+
 const DEFAULT_STATE = {
   selectedDay: todayKey(),
   mesoWeek: 1,
   exercisesDone: {},  // { dayKey: { exIdx: true } }
   cardioDone: {},     // { dayKey: true }
   mealsEaten: {},     // { dayKey: { mealId: true } }
+  weighIns: {},       // { "YYYY-MM-DD": { am: number, pm: number } }
+  weighPromptWeek: null, // ISO week already prompted/handled — suppresses re-nag
+  calorieLog: {},     // { "YYYY-MM-DD": totalKcal }  (quick calorie counter)
 };
 
 function loadState() {
@@ -67,11 +90,43 @@ export function StoreProvider({ children }) {
 
   const resetProgress = useCallback(() => setState((s) => ({
     ...DEFAULT_STATE, selectedDay: s.selectedDay, mesoWeek: s.mesoWeek,
+    // body data (weight history, calorie log) is kept — it isn't "progress"
+    weighIns: s.weighIns, weighPromptWeek: s.weighPromptWeek, calorieLog: s.calorieLog,
   })), []);
+
+  // ---- body: weight tracking + calorie counter ----
+  const setWeighIn = useCallback((dk, slot, value) => setState((s) => {
+    const day = { ...(s.weighIns[dk] || {}) };
+    const num = Number(value);
+    if (value === "" || value == null || Number.isNaN(num)) delete day[slot];
+    else day[slot] = num;
+    const weighIns = { ...s.weighIns, [dk]: day };
+    if (!Object.keys(day).length) delete weighIns[dk];
+    return { ...s, weighIns };
+  }), []);
+
+  const markWeighPrompt = useCallback((weekKey) => setState((s) => ({ ...s, weighPromptWeek: weekKey })), []);
+
+  const addCalories = useCallback((dk, delta) => setState((s) => {
+    const next = Math.max(0, (s.calorieLog[dk] || 0) + delta);
+    return { ...s, calorieLog: { ...s.calorieLog, [dk]: next } };
+  }), []);
+
+  const resetCalories = useCallback((dk) => setState((s) => {
+    const calorieLog = { ...s.calorieLog }; delete calorieLog[dk];
+    return { ...s, calorieLog };
+  }), []);
+
+  // averages the readings on a single weigh-in day (am/pm → current weight)
+  function dayAverage(w) {
+    const vals = [w && w.am, w && w.pm].filter((v) => typeof v === "number" && !Number.isNaN(v));
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  }
 
   // ---- derivations ----
   const api = {
     state, setSelectedDay, setMesoWeek, toggleExercise, toggleCardio, toggleMeal, resetProgress,
+    setWeighIn, markWeighPrompt, addCalories, resetCalories,
 
     dayByKey: (k) => D.week.find((d) => d.key === k),
     sessionFor: (day) => (day && day.type === "gym" ? D.sessions[day.session] : null),
@@ -155,6 +210,45 @@ export function StoreProvider({ children }) {
       });
       return { exercises, sessions, cardio, meals, daysComplete, spend };
     },
+
+    // ---- body: weight ----
+    weighInFor: (dk) => state.weighIns[dk] || {},
+
+    // most recent day with any reading → its am/pm average = "current weight"
+    currentWeight() {
+      const dks = Object.keys(state.weighIns).sort();
+      for (let i = dks.length - 1; i >= 0; i--) {
+        const avg = dayAverage(state.weighIns[dks[i]]);
+        if (avg != null) return { weight: avg, date: dks[i], entry: state.weighIns[dks[i]] };
+      }
+      return null;
+    },
+
+    // change between the two most recent day-averages (kg)
+    weightTrend() {
+      const avgs = Object.keys(state.weighIns).sort()
+        .map((dk) => dayAverage(state.weighIns[dk]))
+        .filter((v) => v != null);
+      return avgs.length >= 2 ? avgs[avgs.length - 1] - avgs[avgs.length - 2] : null;
+    },
+
+    // last N day-averages, oldest→newest, for a mini history
+    weightHistory(n = 6) {
+      return Object.keys(state.weighIns).sort()
+        .map((dk) => ({ date: dk, avg: dayAverage(state.weighIns[dk]) }))
+        .filter((r) => r.avg != null)
+        .slice(-n);
+    },
+
+    // ---- body: calories ----
+    maintenanceKcal() {
+      const cw = this.currentWeight();
+      return D.maintenanceKcal(cw ? cw.weight : D.profile.weight);
+    },
+    caloriesToday: () => state.calorieLog[dateKey()] || 0,
+
+    // weekly weigh-in nudge: due once per ISO week until logged or dismissed
+    weighPromptDue: () => state.weighPromptWeek !== isoWeekKey(),
   };
 
   return <StoreCtx.Provider value={api}>{children}</StoreCtx.Provider>;
