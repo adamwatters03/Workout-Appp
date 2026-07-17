@@ -8,6 +8,7 @@ import {
   RotateCcw, Sparkles, Star, Swords, Target, TrendingUp, Trophy,
   UtensilsCrossed, Zap,
 } from "lucide-react";
+import { defaultPhoto } from "./photos.js";
 
 // only the icons the app actually uses, keyed by their design-file names
 const ICONS = {
@@ -165,7 +166,9 @@ async function fileToDataUrl(file, targetW) {
 }
 
 function ImageSlot({ id, placeholder = "Add photo" }) {
-  const url = useImage(id);
+  const userUrl = useImage(id);        // user drag/drop override (localStorage)
+  const fallback = defaultPhoto(id);   // image bundled with the app, if any
+  const url = userUrl || fallback;
   const [over, setOver] = useState(false);
   const inputRef = useRef(null);
   const rootRef = useRef(null);
@@ -197,8 +200,11 @@ function ImageSlot({ id, placeholder = "Add photo" }) {
           <div className="absolute right-2 top-2 z-[1] flex gap-1 opacity-0 transition-opacity group-hover/slot:opacity-100">
             <span role="button" tabIndex={0} onClick={(e) => { e.stopPropagation(); inputRef.current.click(); }} title="Replace image"
               className="cursor-pointer rounded-md bg-black/65 px-2 py-1 text-[11px] text-white backdrop-blur-sm">Replace</span>
-            <span role="button" tabIndex={0} onClick={(e) => { e.stopPropagation(); setImage(id, null); }} title="Remove image"
-              className="cursor-pointer rounded-md bg-black/65 px-2 py-1 text-[11px] text-white backdrop-blur-sm">Remove</span>
+            {userUrl && (
+              <span role="button" tabIndex={0} onClick={(e) => { e.stopPropagation(); setImage(id, null); }}
+                title={fallback ? "Revert to default image" : "Remove image"}
+                className="cursor-pointer rounded-md bg-black/65 px-2 py-1 text-[11px] text-white backdrop-blur-sm">{fallback ? "Reset" : "Remove"}</span>
+            )}
           </div>
         </React.Fragment>
       ) : (
