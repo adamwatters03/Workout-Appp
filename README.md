@@ -28,10 +28,4 @@ Static output goes to `dist/`.
 
 ## Deploying to GitHub Pages
 
-A ready-to-use GitHub Actions workflow is included at [`deploy-workflow/deploy.yml`](deploy-workflow/deploy.yml). To enable automatic deploys:
-
-1. Move it into place: `mkdir -p .github/workflows && git mv deploy-workflow/deploy.yml .github/workflows/deploy.yml`
-2. Commit and push (requires a token with the `workflow` scope, or push from the GitHub web UI / a machine with GitHub CLI auth).
-3. In the repo's **Settings → Pages**, set the source to **GitHub Actions**.
-
-The workflow builds the Vite app and publishes `dist/` on every push to `main`. (It lives outside `.github/workflows/` in this commit because the token used for the initial push lacked the `workflow` scope.)
+A GitHub Actions workflow at [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) builds the Vite app and publishes `dist/` on every push to `main`. To finish enabling it, set the repo's **Settings → Pages → Source** to **GitHub Actions**.
