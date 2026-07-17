@@ -41,7 +41,10 @@ const DEFAULT_STATE = {
   mealsEaten: {},     // { dayKey: { mealId: true } }
   weighIns: {},       // { "YYYY-MM-DD": { am: number, pm: number } }
   weighPromptWeek: null, // ISO week already prompted/handled — suppresses re-nag
-  calorieLog: {},     // { "YYYY-MM-DD": totalKcal }  (quick calorie counter)
+  calorieLog: {},     // { "YYYY-MM-DD": totalKcal }  (quick manual calorie counter)
+  loggedMeals: {},    // { "YYYY-MM-DD": [ { id, slot, items, totals, ts } ] }  (coach)
+  loggedExercises: {},// { "YYYY-MM-DD": [ { id, name, detail, known, ts } ] }  (coach)
+  chatLog: [],        // [ { role: "user"|"coach", text, ts } ]  capped
 };
 
 function loadState() {
@@ -117,6 +120,31 @@ export function StoreProvider({ children }) {
     return { ...s, calorieLog };
   }), []);
 
+  // ---- coach: natural-language meal & exercise logging ----
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+  const logMeal = useCallback((dk, meal) => setState((s) => {
+    const list = [...(s.loggedMeals[dk] || []), { id: uid(), ts: Date.now(), ...meal }];
+    return { ...s, loggedMeals: { ...s.loggedMeals, [dk]: list } };
+  }), []);
+
+  const logExercise = useCallback((dk, ex) => setState((s) => {
+    const list = [...(s.loggedExercises[dk] || []), { id: uid(), ts: Date.now(), ...ex }];
+    return { ...s, loggedExercises: { ...s.loggedExercises, [dk]: list } };
+  }), []);
+
+  const removeLoggedMeal = useCallback((dk, id) => setState((s) => ({
+    ...s, loggedMeals: { ...s.loggedMeals, [dk]: (s.loggedMeals[dk] || []).filter((m) => m.id !== id) },
+  })), []);
+
+  const removeLoggedExercise = useCallback((dk, id) => setState((s) => ({
+    ...s, loggedExercises: { ...s.loggedExercises, [dk]: (s.loggedExercises[dk] || []).filter((e) => e.id !== id) },
+  })), []);
+
+  const pushChat = useCallback((msg) => setState((s) => ({
+    ...s, chatLog: [...s.chatLog, { ts: Date.now(), ...msg }].slice(-60),
+  })), []);
+
   // averages the readings on a single weigh-in day (am/pm → current weight)
   function dayAverage(w) {
     const vals = [w && w.am, w && w.pm].filter((v) => typeof v === "number" && !Number.isNaN(v));
@@ -127,8 +155,11 @@ export function StoreProvider({ children }) {
   const api = {
     state, setSelectedDay, setMesoWeek, toggleExercise, toggleCardio, toggleMeal, resetProgress,
     setWeighIn, markWeighPrompt, addCalories, resetCalories,
+    logMeal, logExercise, removeLoggedMeal, removeLoggedExercise, pushChat,
 
     dayByKey: (k) => D.week.find((d) => d.key === k),
+    loggedMealsFor: (dk) => state.loggedMeals[dk] || [],
+    loggedExercisesFor: (dk) => state.loggedExercises[dk] || [],
     sessionFor: (day) => (day && day.type === "gym" ? D.sessions[day.session] : null),
     planFor: (day) => {
       if (!day) return [];
@@ -186,6 +217,9 @@ export function StoreProvider({ children }) {
         const t = this.dayTasks(k);
         if (t.complete) xp += v.dayComplete;
       });
+      // coach-logged extras (any date) earn the same per-item XP
+      Object.values(state.loggedMeals).forEach((list) => { xp += list.length * v.meal; });
+      Object.values(state.loggedExercises).forEach((list) => { xp += list.length * v.exercise; });
       return xp;
     },
 
@@ -245,10 +279,33 @@ export function StoreProvider({ children }) {
       const cw = this.currentWeight();
       return D.maintenanceKcal(cw ? cw.weight : D.profile.weight);
     },
-    caloriesToday: () => state.calorieLog[dateKey()] || 0,
+    // manual quick-add + calories from coach-logged meals for the day
+    caloriesToday() {
+      const dk = dateKey();
+      const coach = (state.loggedMeals[dk] || []).reduce((a, m) => a + (m.totals ? m.totals.kcal : 0), 0);
+      return Math.round((state.calorieLog[dk] || 0) + coach);
+    },
 
     // weekly weigh-in nudge: due once per ISO week until logged or dismissed
     weighPromptDue: () => state.weighPromptWeek !== isoWeekKey(),
+
+    // ---- RPG attributes (0–100), derived from cumulative activity ----
+    attributes() {
+      const st = this.stats();
+      const coachEx = Object.values(state.loggedExercises).reduce((a, l) => a + l.length, 0);
+      const coachMeals = Object.values(state.loggedMeals).reduce((a, l) => a + l.length, 0);
+      const weighDays = Object.keys(state.weighIns).length;
+      const clamp = (n) => Math.max(0, Math.min(100, Math.round(n)));
+      const list = [
+        { key: "strength",    label: "Strength",    icon: "Dumbbell", value: clamp((st.exercises + coachEx) * 5) },
+        { key: "endurance",   label: "Endurance",   icon: "Flame",    value: clamp(st.cardio * 30 + coachEx * 3) },
+        { key: "nutrition",   label: "Nutrition",   icon: "Apple",    value: clamp((st.meals + coachMeals) * 4) },
+        { key: "consistency", label: "Consistency", icon: "Zap",      value: clamp(st.daysComplete * 14 + st.sessions * 4) },
+        { key: "recovery",    label: "Recovery",    icon: "Moon",     value: clamp(weighDays * 22 + st.daysComplete * 4) },
+      ];
+      const power = Math.round(list.reduce((a, x) => a + x.value, 0) / list.length);
+      return { list, power };
+    },
   };
 
   return <StoreCtx.Provider value={api}>{children}</StoreCtx.Provider>;

@@ -7,12 +7,80 @@ import { APP_DATA as B } from "../data.js";
 import { Icon, Bar, Ring, Chip } from "../components.jsx";
 import { useStore, dateKey, isoWeekKey } from "../store.jsx";
 import { defaultPhoto } from "../photos.js";
+import { fx, floatXp } from "../fx.js";
 
 const fmtKg = (n) => (Math.round(n * 10) / 10).toFixed(1);
 const prettyDate = (dk) => {
   const [y, m, d] = dk.split("-").map(Number);
   return new Date(y, m - 1, d).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 };
+
+/* ---- RPG attribute character sheet (radar + bars) ---- */
+const ATTR_GREEN = "oklch(0.7 0.15 150)";
+export function AttributePanel() {
+  const store = useStore();
+  const { list, power } = store.attributes();
+
+  // pentagon radar geometry
+  const cx = 120, cy = 104, R = 78, N = list.length;
+  const pt = (i, r) => {
+    const ang = -Math.PI / 2 + (i * 2 * Math.PI) / N;
+    return [cx + Math.cos(ang) * r, cy + Math.sin(ang) * r];
+  };
+  const ring = (frac) => list.map((_, i) => pt(i, R * frac).join(",")).join(" ");
+  const shape = list.map((a, i) => pt(i, R * (a.value / 100)).join(",")).join(" ");
+
+  return (
+    <div className="relative overflow-hidden rounded-3xl bg-neutral-900 p-5 text-white">
+      <div className="pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full bg-[oklch(0.6_0.13_150)] opacity-[0.14] blur-2xl" />
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-white/40">Power Level</div>
+          <div className="text-[30px] font-semibold leading-none tabular-nums">{power}</div>
+        </div>
+        <Chip tone="green" className="!bg-white/10 !text-[oklch(0.85_0.12_150)]"><Icon name="TrendingUp" size={11} /> Attributes</Chip>
+      </div>
+
+      <div className="mt-1 flex justify-center">
+        <svg viewBox="0 0 240 208" className="h-[188px] w-full max-w-[280px]">
+          {[0.25, 0.5, 0.75, 1].map((f) => (
+            <polygon key={f} points={ring(f)} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+          ))}
+          {list.map((_, i) => {
+            const [x, y] = pt(i, R);
+            return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="rgba(255,255,255,0.12)" strokeWidth="1" />;
+          })}
+          <polygon points={shape} fill="oklch(0.7 0.15 150 / 0.28)" stroke={ATTR_GREEN} strokeWidth="2"
+            style={{ transition: "all 0.7s cubic-bezier(0.22,1,0.36,1)" }} />
+          {list.map((a, i) => {
+            const [x, y] = pt(i, R * (a.value / 100));
+            const [lx, ly] = pt(i, R + 16);
+            return (
+              <g key={a.key}>
+                <circle cx={x} cy={y} r="3" fill={ATTR_GREEN} />
+                <text x={lx} y={ly + 3} textAnchor="middle" className="fill-white/45"
+                  style={{ font: '600 8px "SF Mono", ui-monospace, monospace', letterSpacing: "0.08em" }}>
+                  {a.label.slice(0, 4).toUpperCase()}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+
+      <div className="mt-1 space-y-2.5">
+        {list.map((a) => (
+          <div key={a.key} className="flex items-center gap-2.5">
+            <Icon name={a.icon} size={14} className="shrink-0 text-white/50" />
+            <span className="w-[86px] shrink-0 text-[12px] font-medium text-white/80">{a.label}</span>
+            <div className="flex-1"><Bar pct={a.value / 100} color="bg-[oklch(0.7_0.15_150)]" track="bg-white/10" height="h-1.5" /></div>
+            <span className="w-7 shrink-0 text-right text-[12px] font-semibold tabular-nums text-white">{a.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /* ---- weight tracker ---- */
 export function WeightCard() {
@@ -113,9 +181,10 @@ export function CalorieCounter() {
   const remaining = target - total;
   const [custom, setCustom] = useState("");
 
+  const bump = (n) => { store.addCalories(today, n); fx.add(); };
   const addCustom = () => {
     const n = parseInt(custom, 10);
-    if (!Number.isNaN(n) && n !== 0) store.addCalories(today, n);
+    if (!Number.isNaN(n) && n !== 0) { store.addCalories(today, n); fx.pop(); }
     setCustom("");
   };
 
@@ -141,12 +210,12 @@ export function CalorieCounter() {
 
       <div className="mt-4 grid grid-cols-4 gap-2">
         {[100, 250, 500].map((v) => (
-          <button key={v} onClick={() => store.addCalories(today, v)}
+          <button key={v} onClick={() => bump(v)}
             className="flex items-center justify-center gap-0.5 rounded-2xl bg-neutral-900 py-2.5 text-[13px] font-semibold text-white transition active:scale-95">
             <Icon name="Plus" size={13} />{v}
           </button>
         ))}
-        <button onClick={() => store.resetCalories(today)} title="Reset today"
+        <button onClick={() => { store.resetCalories(today); fx.uncheck(); }} title="Reset today"
           className="flex items-center justify-center rounded-2xl border border-neutral-200 bg-white text-neutral-500 transition active:scale-95">
           <Icon name="RotateCcw" size={16} />
         </button>
@@ -222,6 +291,7 @@ export function WeighInModal({ onClose }) {
     if (save) {
       store.setWeighIn(today, "am", am);
       store.setWeighIn(today, "pm", pm);
+      if (am !== "" || pm !== "") { fx.success(); floatXp("Weigh-in logged"); }
     }
     store.markWeighPrompt(isoWeekKey()); // don't nag again this week
     onClose();

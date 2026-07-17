@@ -5,7 +5,7 @@ import React from "react";
 import { APP_DATA as PR } from "../data.js";
 import { Icon, Eyebrow, Ring, Bar, Chip } from "../components.jsx";
 import { useStore } from "../store.jsx";
-import { WeightCard, CalorieCounter, SupplementsSection } from "./body.jsx";
+import { WeightCard, CalorieCounter, SupplementsSection, AttributePanel } from "./body.jsx";
 
 export function ProgressScreen() {
   const store = useStore();
@@ -72,6 +72,13 @@ export function ProgressScreen() {
           </div>
         </div>
       </div>
+
+      {/* attributes */}
+      <div className="mb-2.5 mt-6 flex items-center gap-2">
+        <Icon name="Sparkles" size={15} className="text-neutral-400" />
+        <h2 className="text-[13px] font-semibold tracking-tight text-neutral-700">Attributes</h2>
+      </div>
+      <AttributePanel />
 
       {/* stats */}
       <div className="mb-2.5 mt-6"><h2 className="text-[13px] font-semibold tracking-tight text-neutral-700">This Week</h2></div>

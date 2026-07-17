@@ -3,9 +3,10 @@
    ========================================================================= */
 import React from "react";
 import { APP_DATA as TD } from "../data.js";
-import { Icon, Eyebrow, AnimatedNumber, Ring, Bar, Chip, Photo } from "../components.jsx";
+import { Icon, Eyebrow, AnimatedNumber, Ring, Bar, Chip, Photo, SoundToggle } from "../components.jsx";
 import { useStore, todayKey } from "../store.jsx";
 import { useNav } from "../nav.jsx";
+import { fx, floatXp } from "../fx.js";
 
 function GreetingDate() {
   const d = new Date();
@@ -32,6 +33,7 @@ export function TodayScreen() {
           <p className="mt-1 text-[12px] text-neutral-400">{GreetingDate()}</p>
         </div>
         <div className="flex items-center gap-2">
+          <SoundToggle />
           <div className="flex items-center gap-1.5 rounded-full bg-[oklch(0.96_0.04_60)] px-2.5 py-1.5 ring-1 ring-inset ring-[oklch(0.9_0.06_60)]">
             <Icon name="Flame" size={15} className="text-[oklch(0.62_0.16_50)]" />
             <span className="text-[13px] font-semibold tabular-nums text-[oklch(0.45_0.12_50)]">{stats.daysComplete}</span>
@@ -163,7 +165,7 @@ function TrainPreviewCardio({ day, dayKey }) {
         </div>
       </div>
       <div className="p-4 pt-2">
-        <button onClick={() => store.toggleCardio(dayKey)}
+        <button onClick={() => { const was = done; store.toggleCardio(dayKey); if (!was) { fx.success(); floatXp(`+${TD.xpValues.cardio} XP`); } else fx.uncheck(); }}
           className={"flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-[14px] font-semibold transition active:scale-[0.98] " +
             (done ? "bg-[oklch(0.96_0.03_150)] text-[oklch(0.42_0.12_150)] ring-1 ring-inset ring-[oklch(0.88_0.06_150)]"
                   : "bg-neutral-900 text-white")}>

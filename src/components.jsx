@@ -4,19 +4,34 @@
 import React, { useState, useEffect, useRef, useReducer } from "react";
 import {
   Apple, Calculator, Check, ChevronLeft, ChevronRight, Circle, CircleCheck,
-  Database, Dumbbell, Fish, Flame, Goal, House, Image, Leaf, Lock, Minus, Moon,
-  Pill, Play, Plus, PoundSterling, RotateCcw, Scale, Sparkles, Sprout, Star, Sun,
-  Swords, Target, TrendingDown, TrendingUp, Trophy, UtensilsCrossed, X, Zap,
+  Database, Dumbbell, Fish, Flame, Goal, House, Image, Leaf, Lock, MessageCircle,
+  Minus, Moon, Pill, Play, Plus, PoundSterling, RotateCcw, Scale, Sparkles,
+  Sprout, Star, Sun, Swords, Target, TrendingDown, TrendingUp, Trophy,
+  UtensilsCrossed, Volume2, VolumeX, X, Zap,
 } from "lucide-react";
 import { defaultPhoto } from "./photos.js";
+import { setFxEnabled, useFxEnabled } from "./fx.js";
 
 // only the icons the app actually uses, keyed by their design-file names
 const ICONS = {
   Apple, Calculator, Check, ChevronLeft, ChevronRight, Circle, CircleCheck,
-  Database, Dumbbell, Fish, Flame, Goal, House, Image, Leaf, Lock, Minus, Moon,
-  Pill, Play, Plus, PoundSterling, RotateCcw, Scale, Sparkles, Sprout, Star, Sun,
-  Swords, Target, TrendingDown, TrendingUp, Trophy, UtensilsCrossed, X, Zap,
+  Database, Dumbbell, Fish, Flame, Goal, House, Image, Leaf, Lock, MessageCircle,
+  Minus, Moon, Pill, Play, Plus, PoundSterling, RotateCcw, Scale, Sparkles,
+  Sprout, Star, Sun, Swords, Target, TrendingDown, TrendingUp, Trophy,
+  UtensilsCrossed, Volume2, VolumeX, X, Zap,
 };
+
+/* ---- sound / haptics toggle ---- */
+export function SoundToggle({ className = "" }) {
+  const on = useFxEnabled();
+  return (
+    <button onClick={() => setFxEnabled(!on)} aria-pressed={on} title={on ? "Sound on" : "Sound off"}
+      className={"grid h-8 w-8 place-items-center rounded-full ring-1 ring-inset transition active:scale-90 " +
+        (on ? "bg-neutral-900 text-white ring-neutral-900" : "bg-white text-neutral-400 ring-neutral-200") + " " + className}>
+      <Icon name={on ? "Volume2" : "VolumeX"} size={15} />
+    </button>
+  );
+}
 
 /* ---- Lucide icon ---- */
 export function Icon({ name, size = 20, strokeWidth = 1.9, className = "", style }) {

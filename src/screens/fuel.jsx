@@ -6,6 +6,7 @@ import { APP_DATA as FU } from "../data.js";
 import { Icon, Eyebrow, AnimatedNumber, Ring, Bar, Chip, Photo, CheckToggle, slug } from "../components.jsx";
 import { useStore } from "../store.jsx";
 import { useNav, DetailHeader } from "../nav.jsx";
+import { fx, floatXp } from "../fx.js";
 
 function loggedTotals(plan, eatenIds) {
   const t = { kcal: 0, protein: 0, carbs: 0, fat: 0, cost: 0 };
@@ -104,7 +105,7 @@ export function FuelScreen() {
                   </div>
                 </div>
               </button>
-              <CheckToggle checked={eaten} onClick={() => store.toggleMeal(dayKey, meal.id)} />
+              <CheckToggle checked={eaten} onClick={() => { store.toggleMeal(dayKey, meal.id); if (!eaten) { fx.pop(); floatXp(`+${FU.xpValues.meal} XP`); } else fx.uncheck(); }} />
             </div>
           );
         })}
@@ -174,7 +175,7 @@ export function MealDetail({ dayKey, mealId }) {
       </div>
 
       <div className="absolute inset-x-0 bottom-0 border-t border-neutral-200 bg-neutral-50/90 p-4 backdrop-blur" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
-        <button onClick={() => store.toggleMeal(dayKey, mealId)}
+        <button onClick={() => { store.toggleMeal(dayKey, mealId); if (!eaten) { fx.pop(); floatXp(`+${FU.xpValues.meal} XP`); } else fx.uncheck(); }}
           className={"flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-[14px] font-semibold transition active:scale-[0.98] " +
             (eaten ? "bg-[oklch(0.96_0.03_150)] text-[oklch(0.42_0.12_150)] ring-1 ring-inset ring-[oklch(0.88_0.06_150)]" : "bg-neutral-900 text-white")}>
           <Icon name={eaten ? "CircleCheck" : "Circle"} size={18} />

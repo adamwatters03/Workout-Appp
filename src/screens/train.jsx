@@ -6,6 +6,7 @@ import { APP_DATA as TR } from "../data.js";
 import { Icon, Eyebrow, Bar, Chip, Photo, CheckToggle, slug } from "../components.jsx";
 import { useStore, todayKey } from "../store.jsx";
 import { useNav, DetailHeader } from "../nav.jsx";
+import { fx, floatXp } from "../fx.js";
 
 export function WeekSelector({ value, onChange, dark }) {
   return (
@@ -114,7 +115,7 @@ export function SessionDetail({ dayKey }) {
               const done = store.isExerciseDone(dayKey, idx);
               return (
                 <div key={ex.name} className={"flex items-center gap-3 rounded-2xl border bg-white p-2.5 transition " + (done ? "border-[oklch(0.85_0.06_150)]" : "border-neutral-200")}>
-                  <CheckToggle checked={done} onClick={() => store.toggleExercise(dayKey, idx)} />
+                  <CheckToggle checked={done} onClick={() => { store.toggleExercise(dayKey, idx); if (!done) { fx.pop(); floatXp(`+${TR.xpValues.exercise} XP`); } else fx.uncheck(); }} />
                   <button onClick={() => nav.push({ type: "exercise", dayKey, idx })} className="flex min-w-0 flex-1 items-center gap-3 text-left">
                     <Photo id={"ex-" + slug(ex.name)} ratio="1 / 1" radius={12} placeholder="Photo"
                       className="w-14 shrink-0" />
@@ -192,7 +193,7 @@ export function ExerciseDetail({ dayKey, idx }) {
 
       {/* sticky complete */}
       <div className="absolute inset-x-0 bottom-0 border-t border-neutral-200 bg-neutral-50/90 p-4 backdrop-blur" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
-        <button onClick={() => store.toggleExercise(dayKey, idx)}
+        <button onClick={() => { store.toggleExercise(dayKey, idx); if (!done) { fx.pop(); floatXp(`+${TR.xpValues.exercise} XP`); } else fx.uncheck(); }}
           className={"flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-[14px] font-semibold transition active:scale-[0.98] " +
             (done ? "bg-[oklch(0.96_0.03_150)] text-[oklch(0.42_0.12_150)] ring-1 ring-inset ring-[oklch(0.88_0.06_150)]" : "bg-neutral-900 text-white")}>
           <Icon name={done ? "CircleCheck" : "Circle"} size={18} />
