@@ -3,22 +3,22 @@
    ========================================================================= */
 import React, { useState, useEffect, useRef, useReducer } from "react";
 import {
-  Apple, Calculator, Check, ChevronLeft, ChevronRight, Circle, CircleCheck,
-  Database, Dumbbell, Fish, Flame, Goal, House, Image, Leaf, Lock, MessageCircle,
-  Minus, Moon, Pill, Play, Plus, PoundSterling, RotateCcw, Scale, Sparkles,
-  Sprout, Star, Sun, Swords, Target, TrendingDown, TrendingUp, Trophy,
-  UtensilsCrossed, Volume2, VolumeX, X, Zap,
+  Apple, Calculator, CalendarDays, Check, ChevronLeft, ChevronRight, Circle,
+  CircleCheck, Database, Dumbbell, Fish, Flame, Goal, House, Image, Leaf, Link2,
+  Lock, MessageCircle, Minus, Moon, Pill, Plane, Play, Plus, PoundSterling,
+  RefreshCw, RotateCcw, Scale, Sparkles, Sprout, Star, Sun, Swords, Target,
+  TrendingDown, TrendingUp, Trophy, UtensilsCrossed, Volume2, VolumeX, X, Zap,
 } from "lucide-react";
 import { defaultPhoto } from "./photos.js";
 import { setFxEnabled, useFxEnabled } from "./fx.js";
 
 // only the icons the app actually uses, keyed by their design-file names
 const ICONS = {
-  Apple, Calculator, Check, ChevronLeft, ChevronRight, Circle, CircleCheck,
-  Database, Dumbbell, Fish, Flame, Goal, House, Image, Leaf, Lock, MessageCircle,
-  Minus, Moon, Pill, Play, Plus, PoundSterling, RotateCcw, Scale, Sparkles,
-  Sprout, Star, Sun, Swords, Target, TrendingDown, TrendingUp, Trophy,
-  UtensilsCrossed, Volume2, VolumeX, X, Zap,
+  Apple, Calculator, CalendarDays, Check, ChevronLeft, ChevronRight, Circle,
+  CircleCheck, Database, Dumbbell, Fish, Flame, Goal, House, Image, Leaf, Link2,
+  Lock, MessageCircle, Minus, Moon, Pill, Plane, Play, Plus, PoundSterling,
+  RefreshCw, RotateCcw, Scale, Sparkles, Sprout, Star, Sun, Swords, Target,
+  TrendingDown, TrendingUp, Trophy, UtensilsCrossed, Volume2, VolumeX, X, Zap,
 };
 
 /* ---- sound / haptics toggle ---- */

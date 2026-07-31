@@ -5,7 +5,7 @@ import React from "react";
 import { APP_DATA as PR } from "../data.js";
 import { Icon, Eyebrow, Ring, Bar, Chip } from "../components.jsx";
 import { useStore } from "../store.jsx";
-import { WeightCard, CalorieCounter, SupplementsSection, AttributePanel } from "./body.jsx";
+import { WeightCard, CalorieCounter, SupplementsSection, AttributePanel, CalendarCard } from "./body.jsx";
 
 export function ProgressScreen() {
   const store = useStore();
@@ -14,7 +14,7 @@ export function ProgressScreen() {
 
   // derive a few extra facts for badges
   let anyFuelDay = false, thriftyDay = false;
-  PR.week.forEach((d) => {
+  store.weekDays().forEach((d) => {
     const t = store.dayTasks(d.key);
     if (t.fuelComplete) {
       anyFuelDay = true;
@@ -72,6 +72,13 @@ export function ProgressScreen() {
           </div>
         </div>
       </div>
+
+      {/* schedule / calendar */}
+      <div className="mb-2.5 mt-6 flex items-center gap-2">
+        <Icon name="CalendarDays" size={15} className="text-neutral-400" />
+        <h2 className="text-[13px] font-semibold tracking-tight text-neutral-700">Schedule</h2>
+      </div>
+      <CalendarCard />
 
       {/* attributes */}
       <div className="mb-2.5 mt-6 flex items-center gap-2">

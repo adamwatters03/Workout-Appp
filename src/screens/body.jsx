@@ -8,12 +8,85 @@ import { Icon, Bar, Ring, Chip } from "../components.jsx";
 import { useStore, dateKey, isoWeekKey } from "../store.jsx";
 import { defaultPhoto } from "../photos.js";
 import { fx, floatXp } from "../fx.js";
+import { syncNow } from "../calendar.js";
 
 const fmtKg = (n) => (Math.round(n * 10) / 10).toFixed(1);
 const prettyDate = (dk) => {
   const [y, m, d] = dk.split("-").map(Number);
   return new Date(y, m - 1, d).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 };
+
+/* ---- Google Calendar sync ---- */
+const DAY_LABEL = { mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun" };
+export function CalendarCard() {
+  const store = useStore();
+  const cal = store.state.calendar;
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const active = store.calendarActive();
+  const stale = store.calendarStale();
+
+  const connect = async () => {
+    setBusy(true); setErr(null);
+    try {
+      const { overrides, summary, count } = await syncNow();
+      store.setCalendarPlan(overrides, summary);
+      fx.success(); floatXp("Calendar synced");
+      if (!summary.length) setErr(`Synced ${count} event${count === 1 ? "" : "s"} — no boxing, football or travel found this week, so your routine is unchanged.`);
+    } catch (e) {
+      setErr(e.message || "Could not connect to Google Calendar.");
+      fx.uncheck();
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="rounded-3xl border border-neutral-200 bg-white p-4">
+      <div className="flex items-center gap-3">
+        <span className={"grid h-11 w-11 shrink-0 place-items-center rounded-2xl " + (active ? "bg-[oklch(0.6_0.13_150)] text-white" : "bg-neutral-100 text-neutral-500")}>
+          <Icon name="CalendarDays" size={20} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="text-[15px] font-semibold leading-tight text-neutral-900">Google Calendar</div>
+          <div className="text-[12px] text-neutral-400">
+            {active ? "Synced — your week adapts to your calendar" : stale ? "New week — tap sync to refresh" : "Plan workouts around your real schedule"}
+          </div>
+        </div>
+        {active && <Chip tone="green"><Icon name="Check" size={10} /> On</Chip>}
+      </div>
+
+      {active && cal.summary.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {cal.summary.map(([k, label]) => (
+            <Chip key={k} tone={label === "Away" ? "amber" : "neutral"}>
+              {label === "Away" ? <Icon name="Plane" size={10} /> : label === "Boxing" ? <Icon name="Swords" size={10} /> : <Icon name="Goal" size={10} />}
+              {label} · {DAY_LABEL[k]}
+            </Chip>
+          ))}
+        </div>
+      )}
+
+      {err && <div className="mt-3 rounded-2xl bg-neutral-50 px-3.5 py-2.5 text-[12px] leading-snug text-neutral-500 ring-1 ring-inset ring-neutral-100">{err}</div>}
+
+      <div className="mt-3 flex gap-2">
+        <button onClick={connect} disabled={busy}
+          className={"flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-[13px] font-semibold transition active:scale-[0.98] " +
+            (busy ? "bg-neutral-200 text-neutral-400" : "bg-neutral-900 text-white")}>
+          <Icon name={active ? "RefreshCw" : "Link2"} size={15} />
+          {busy ? "Connecting…" : active ? "Sync now" : "Connect Google Calendar"}
+        </button>
+        {cal.connected && (
+          <button onClick={() => { store.clearCalendar(); fx.uncheck(); }}
+            className="rounded-2xl border border-neutral-200 bg-white px-4 text-[13px] font-medium text-neutral-500 transition active:scale-[0.98]">
+            Disconnect
+          </button>
+        )}
+      </div>
+      <p className="mt-2.5 text-[11px] leading-snug text-neutral-400">
+        Read-only. Add “Boxing”, “Football” or “Away / holiday” to your calendar and the app moves sessions and nutrition to match. First time, Google shows an “unverified app” notice — tap Advanced → continue (you're the test user).
+      </p>
+    </div>
+  );
+}
 
 /* ---- RPG attribute character sheet (radar + bars) ---- */
 const ATTR_GREEN = "oklch(0.7 0.15 150)";

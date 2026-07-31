@@ -41,9 +41,16 @@ export function TodayScreen() {
         </div>
       </div>
 
+      {store.calendarActive() && (
+        <div className="mt-3 flex items-center gap-2 rounded-2xl bg-[oklch(0.97_0.02_150)] px-3.5 py-2.5 ring-1 ring-inset ring-[oklch(0.9_0.05_150)]">
+          <Icon name="CalendarDays" size={15} className="shrink-0 text-[oklch(0.5_0.13_150)]" />
+          <p className="text-[12px] leading-snug text-[oklch(0.4_0.08_150)]">This week is adapted to your Google Calendar.</p>
+        </div>
+      )}
+
       {/* week strip */}
       <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {TD.week.map((d) => {
+        {store.weekDays().map((d) => {
           const sel = d.key === dayKey;
           const t = store.dayTasks(d.key);
           return (
@@ -99,7 +106,7 @@ export function TodayScreen() {
       <SectionLabel icon="Dumbbell">Today's Training</SectionLabel>
       {day.type === "gym" && <TrainPreviewGym day={day} tasks={tasks} onOpen={() => nav.push({ type: "session", dayKey })} />}
       {day.type === "cardio" && <TrainPreviewCardio day={day} dayKey={dayKey} />}
-      {day.type === "rest" && <RestPreview />}
+      {day.type === "rest" && <RestPreview day={day} />}
 
       {/* FUEL preview */}
       <SectionLabel icon="Apple">Today's Fuel</SectionLabel>
@@ -177,15 +184,16 @@ function TrainPreviewCardio({ day, dayKey }) {
   );
 }
 
-function RestPreview() {
+function RestPreview({ day }) {
+  const away = day && day.away;
   return (
     <div className="flex items-center gap-3 rounded-3xl border border-neutral-200 bg-white p-4">
       <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-neutral-100 text-neutral-900">
-        <Icon name="Moon" size={22} />
+        <Icon name={away ? "Plane" : "Moon"} size={22} />
       </span>
       <div>
-        <div className="text-[17px] font-semibold leading-tight text-neutral-900">Rest &amp; Recovery</div>
-        <div className="text-[12px] text-neutral-400">Sleep, mobility, protein. No training today.</div>
+        <div className="text-[17px] font-semibold leading-tight text-neutral-900">{away ? "Away / Travel" : "Rest & Recovery"}</div>
+        <div className="text-[12px] text-neutral-400">{away ? "Off the routine — keep protein up, move when you can." : "Sleep, mobility, protein. No training today."}</div>
       </div>
     </div>
   );

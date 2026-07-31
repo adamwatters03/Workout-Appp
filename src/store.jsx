@@ -45,6 +45,7 @@ const DEFAULT_STATE = {
   loggedMeals: {},    // { "YYYY-MM-DD": [ { id, slot, items, totals, ts } ] }  (coach)
   loggedExercises: {},// { "YYYY-MM-DD": [ { id, name, detail, known, ts } ] }  (coach)
   chatLog: [],        // [ { role: "user"|"coach", text, ts } ]  capped
+  calendar: { connected: false, weekKey: null, lastSyncTs: null, overrides: {}, summary: [] },
 };
 
 function loadState() {
@@ -145,6 +146,15 @@ export function StoreProvider({ children }) {
     ...s, chatLog: [...s.chatLog, { ts: Date.now(), ...msg }].slice(-60),
   })), []);
 
+  // ---- google calendar ----
+  const setCalendarPlan = useCallback((overrides, summary) => setState((s) => ({
+    ...s, calendar: { connected: true, weekKey: isoWeekKey(), lastSyncTs: Date.now(), overrides: overrides || {}, summary: summary || [] },
+  })), []);
+
+  const clearCalendar = useCallback(() => setState((s) => ({
+    ...s, calendar: { connected: false, weekKey: null, lastSyncTs: null, overrides: {}, summary: [] },
+  })), []);
+
   // averages the readings on a single weigh-in day (am/pm → current weight)
   function dayAverage(w) {
     const vals = [w && w.am, w && w.pm].filter((v) => typeof v === "number" && !Number.isNaN(v));
@@ -156,8 +166,23 @@ export function StoreProvider({ children }) {
     state, setSelectedDay, setMesoWeek, toggleExercise, toggleCardio, toggleMeal, resetProgress,
     setWeighIn, markWeighPrompt, addCalories, resetCalories,
     logMeal, logExercise, removeLoggedMeal, removeLoggedExercise, pushChat,
+    setCalendarPlan, clearCalendar,
 
-    dayByKey: (k) => D.week.find((d) => d.key === k),
+    // calendar overrides only apply to the week they were synced for
+    calendarActive: () => state.calendar.connected && state.calendar.weekKey === isoWeekKey(),
+    calendarStale: () => state.calendar.connected && state.calendar.weekKey !== isoWeekKey(),
+    _overrides() { return this.calendarActive() ? state.calendar.overrides : {}; },
+
+    // effective weekday = base template + any live calendar override
+    weekDays() {
+      const ov = this._overrides();
+      return D.week.map((d) => (ov[d.key] ? { ...d, ...ov[d.key] } : d));
+    },
+    dayByKey(k) {
+      const base = D.week.find((d) => d.key === k);
+      const ov = this._overrides()[k];
+      return ov ? { ...base, ...ov } : base;
+    },
     loggedMealsFor: (dk) => state.loggedMeals[dk] || [],
     loggedExercisesFor: (dk) => state.loggedExercises[dk] || [],
     sessionFor: (day) => (day && day.type === "gym" ? D.sessions[day.session] : null),
@@ -171,7 +196,7 @@ export function StoreProvider({ children }) {
     isMealEaten: (dayKey, mealId) => !!(state.mealsEaten[dayKey] || {})[mealId],
 
     dayTasks(dayKey) {
-      const day = D.week.find((d) => d.key === dayKey);
+      const day = this.dayByKey(dayKey);
       let trainTotal = 0, trainDone = 0;
       if (day.type === "gym") {
         const s = D.sessions[day.session];
@@ -198,7 +223,7 @@ export function StoreProvider({ children }) {
 
     xp() {
       const v = D.xpValues; let xp = 0;
-      D.week.forEach((day) => {
+      this.weekDays().forEach((day) => {
         const k = day.key;
         // exercises
         const exDone = Object.keys(state.exercisesDone[k] || {}).length;
@@ -227,7 +252,7 @@ export function StoreProvider({ children }) {
 
     stats() {
       let exercises = 0, sessions = 0, cardio = 0, meals = 0, daysComplete = 0, spend = 0;
-      D.week.forEach((day) => {
+      this.weekDays().forEach((day) => {
         const k = day.key;
         const exDone = Object.keys(state.exercisesDone[k] || {}).length;
         exercises += exDone;
