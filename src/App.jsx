@@ -10,7 +10,7 @@ import { TodayScreen } from "./screens/today.jsx";
 import { TrainScreen, SessionDetail, ExerciseDetail } from "./screens/train.jsx";
 import { FuelScreen, MealDetail, FoodDatabase, FoodDetail } from "./screens/fuel.jsx";
 import { ProgressScreen } from "./screens/progress.jsx";
-import { WeighInModal } from "./screens/body.jsx";
+import { WeighInModal, CalendarAutoSync } from "./screens/body.jsx";
 import { CoachScreen } from "./screens/coach.jsx";
 import { fx } from "./fx.js";
 
@@ -127,6 +127,7 @@ function Shell() {
       <ScreenHost />
       <TabBar />
 
+      <CalendarAutoSync />
       {showWeighIn && <WeighInModal onClose={() => setShowWeighIn(false)} />}
 
       {/* celebration toast */}

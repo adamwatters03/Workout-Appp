@@ -8,7 +8,7 @@ import { Icon, Bar, Ring, Chip } from "../components.jsx";
 import { useStore, dateKey, isoWeekKey } from "../store.jsx";
 import { defaultPhoto } from "../photos.js";
 import { fx, floatXp } from "../fx.js";
-import { syncNow } from "../calendar.js";
+import { interactiveSync, backgroundSync } from "../calendar.js";
 
 const fmtKg = (n) => (Math.round(n * 10) / 10).toFixed(1);
 const prettyDate = (dk) => {
@@ -29,10 +29,10 @@ export function CalendarCard() {
   const connect = async () => {
     setBusy(true); setErr(null);
     try {
-      const { overrides, summary, count } = await syncNow();
+      const { overrides, summary, count } = await interactiveSync();
       store.setCalendarPlan(overrides, summary);
       fx.success(); floatXp("Calendar synced");
-      if (!summary.length) setErr(`Synced ${count} event${count === 1 ? "" : "s"} — no boxing, football or travel found this week, so your routine is unchanged.`);
+      if (!summary.length) setErr(`Scanned ${count} event${count === 1 ? "" : "s"} across your calendars — no workouts or travel this week, so your routine is unchanged.`);
     } catch (e) {
       setErr(e.message || "Could not connect to Google Calendar.");
       fx.uncheck();
@@ -82,10 +82,47 @@ export function CalendarCard() {
         )}
       </div>
       <p className="mt-2.5 text-[11px] leading-snug text-neutral-400">
-        Read-only. Add “Boxing”, “Football” or “Away / holiday” to your calendar and the app moves sessions and nutrition to match. First time, Google shows an “unverified app” notice — tap Advanced → continue (you're the test user).
+        Read-only, across all your own calendars. Put boxing, football, a run/swim/gym session or “away / holiday” in your calendar and the app moves sessions and nutrition to match — meetings and notes are ignored. It re-scans automatically while open. First time, Google shows an “unverified app” notice — tap Advanced → continue (you're the test user).
       </p>
     </div>
   );
+}
+
+/* Auto-refresh: silently re-scan the calendar while the app is open — on
+   mount, when the app regains focus, and every few minutes — so moving an
+   event shows up without tapping Sync. Uses the live token only; never pops
+   a dialog (after a reload or ~1h expiry the user taps Connect once). */
+export function CalendarAutoSync() {
+  const store = useStore();
+  const connected = store.state.calendar.connected;
+  const lastRun = React.useRef(0);
+  React.useEffect(() => {
+    if (!connected) return;
+    let cancelled = false;
+    const run = async () => {
+      if (Date.now() - lastRun.current < 60000) return; // throttle to once/min
+      lastRun.current = Date.now();
+      try {
+        const { overrides, summary } = await backgroundSync();
+        if (cancelled) return;
+        // only write if the plan actually changed, to avoid needless renders
+        if (JSON.stringify(overrides) !== JSON.stringify(store.state.calendar.overrides)) {
+          store.setCalendarPlan(overrides, summary);
+        }
+      } catch (e) { /* NEEDS_AUTH / offline — keep the last synced plan */ }
+    };
+    run();
+    const iv = setInterval(run, 5 * 60 * 1000);
+    const onVisible = () => { if (document.visibilityState === "visible") run(); };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      cancelled = true; clearInterval(iv);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [connected]);
+  return null;
 }
 
 /* ---- RPG attribute character sheet (radar + bars) ---- */
